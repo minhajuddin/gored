@@ -1,0 +1,12 @@
+Go redis
+========
+
+ - Basic redis client
+
+List
+====
+
+  - Should be able to run PING
+  - Should be able to SET
+  - Should be able to GET
+  - other commands
