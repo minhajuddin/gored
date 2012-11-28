@@ -1,26 +1,35 @@
 package gored
 
 import (
-	"strconv"
+	"bufio"
+	"fmt"
 	"log"
 	"net"
-	"fmt"
-	"bufio"
+	"strconv"
+	"strings"
 )
 
-type Redis struct{
+type Redis struct {
 	Connection net.Conn
+	Reader     *bufio.Reader
 }
 
-func (self *Redis) Run(args ...string) {
+func (self *Redis) run(args ...string) {
 	//build command
 	cmd := "*" + strconv.Itoa(len(args)) + "\r\n"
 	for _, t := range args {
 		cmd += fmt.Sprintf("$%d\r\n%v\r\n", len(t), t)
 	}
 	fmt.Fprint(self.Connection, cmd)
-	r := bufio.NewReader(self.Connection)
-	log.Println(r.ReadString('\n'))
+}
+
+func (self *Redis) Ping() (string, error) {
+	self.run("PING")
+	op, err := self.Reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	return strings.Trim(op, "+\r\n"), nil
 }
 
 func (self *Redis) Close() {
@@ -35,11 +44,12 @@ func New() (*Redis, error) {
 	}
 	r := &Redis{
 		Connection: c,
+		Reader:     bufio.NewReader(c),
 	}
 
 	return r, nil
 }
 
-func Hello(){
+func Hello() {
 	log.Println("Hello redis ;)")
 }
