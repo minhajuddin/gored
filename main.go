@@ -32,6 +32,16 @@ func (self *Redis) Ping() (string, error) {
 	return strings.Trim(op, "+\r\n"), nil
 }
 
+func (self *Redis) Set(key string, value string) error {
+	self.run("SET", key, value)
+	line, err := self.Reader.ReadString('\n')
+	if err != nil {
+		return err
+	}
+	log.Println(line)
+	return nil
+}
+
 func (self *Redis) Close() {
 	self.Connection.Close()
 }
