@@ -30,27 +30,27 @@ func (self *Redis) readline() (string, error) {
 	return strings.Trim(line, "\r\n"), nil
 }
 
-func (self *Redis) read() (string, error) {
+func (self *Redis) read() (result string, err error) {
 	sym, err := self.Reader.ReadByte()
+	if err != nil {
+		return
+	}
 	switch sym {
 	case '-':
 		line, err := self.readline()
 		if err == nil {
 			err = errors.New(line)
 		}
-		return "", err
 	case '+':
-		line, err := self.readline()
-		if err != nil {
-			return "", err
-		}
-		return line, nil
+		result, err = self.readline()
+	case ':':
+		result, err = self.readline()
 	case '*':
 	default:
-		return "", errors.New("Redis protocol error")
+		err = errors.New("Redis protocol error")
 	}
 
-	return "NOT IMPL", err
+	return
 }
 
 func (self *Redis) Ping() (string, error) {
