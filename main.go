@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	_ "log"
 	"net"
 	"strconv"
 	"strings"
@@ -45,7 +46,14 @@ func (self *Redis) read() (result string, err error) {
 		result, err = self.readline()
 	case ':':
 		result, err = self.readline()
-	case '*':
+	case '$':
+		line, err := self.readline()
+		if err == nil && result == "-1" {
+			err = errors.New(line)
+		}
+		if err == nil {
+			result, err = self.readline()
+		}
 	default:
 		err = errors.New("Redis protocol error")
 	}
