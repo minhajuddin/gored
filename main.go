@@ -68,6 +68,11 @@ func (self *Redis) Get(key string) (string, error) {
 	return self.read()
 }
 
+func (self *Redis) Incr(key string) (string, error) {
+	self.write("INCR", key)
+	return self.read()
+}
+
 func (self *Redis) Close() {
 	self.Connection.Close()
 }
