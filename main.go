@@ -2,8 +2,8 @@ package gored
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
-	"log"
 	"net"
 	"strconv"
 	"strings"
@@ -14,9 +14,7 @@ type Redis struct {
 	Reader     *bufio.Reader
 }
 
-func (self *Redis) run(args ...string) {
-	//TODO: Move this into a command builder
-	//build command
+func (self *Redis) write(args ...string) {
 	cmd := "*" + strconv.Itoa(len(args)) + "\r\n"
 	for _, t := range args {
 		cmd += fmt.Sprintf("$%d\r\n%v\r\n", len(t), t)
@@ -24,35 +22,50 @@ func (self *Redis) run(args ...string) {
 	fmt.Fprint(self.Connection, cmd)
 }
 
-func (self *Redis) Ping() (string, error) {
-	self.run("PING")
-	op, err := self.Reader.ReadString('\n')
-	if err != nil {
-		return "", err
-	}
-	return strings.Trim(op, "+\r\n"), nil
-}
-
-func (self *Redis) Set(key string, value string) error {
-	self.run("SET", key, value)
+func (self *Redis) readline() (string, error) {
 	line, err := self.Reader.ReadString('\n')
 	if err != nil {
-		return err
-	}
-	log.Println(line)
-	return nil
-}
-
-//TODO: Create a result parser
-func (self *Redis) Get(key string) (string, error) {
-	self.run("GET", key)
-	self.Reader.ReadString('\n')
-	//status, err := self.Reader.ReadString('\n')
-	op, err := self.Reader.ReadString('\n')
-	if err != nil {
 		return "", err
 	}
-	return strings.Trim(op, "+\r\n"), nil
+	return strings.Trim(line, "\r\n"), nil
+}
+
+func (self *Redis) read() (string, error) {
+	sym, err := self.Reader.ReadByte()
+	switch sym {
+	case '-':
+		line, err := self.readline()
+		if err == nil {
+			err = errors.New(line)
+		}
+		return "", err
+	case '+':
+		line, err := self.readline()
+		if err != nil {
+			return "", err
+		}
+		return line, nil
+	case '*':
+	default:
+		return "", errors.New("Redis protocol error")
+	}
+
+	return "NOT IMPL", err
+}
+
+func (self *Redis) Ping() (string, error) {
+	self.write("PING")
+	return self.read()
+}
+
+func (self *Redis) Set(key string, value string) (string, error) {
+	self.write("SET", key, value)
+	return self.read()
+}
+
+func (self *Redis) Get(key string) (string, error) {
+	self.write("GET", key)
+	return self.read()
 }
 
 func (self *Redis) Close() {
@@ -71,8 +84,4 @@ func New() (*Redis, error) {
 	}
 
 	return r, nil
-}
-
-func Hello() {
-	log.Println("Hello redis ;)")
 }
